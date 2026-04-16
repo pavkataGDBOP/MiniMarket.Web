@@ -6,15 +6,14 @@ using MiniMarket.Web.Helpers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
-
 namespace MiniMarket.Web.Controllers
 {
-    
     public class CartController : Controller
     {
         private const string CartKey = "cart";
 
-        private readonly IOrderService _orderService;
+
+    private readonly IOrderService _orderService;
         private readonly AppDbContext _context;
 
         public CartController(IOrderService orderService, AppDbContext context)
@@ -23,13 +22,32 @@ namespace MiniMarket.Web.Controllers
             _context = context;
         }
 
+        // 🔹 Helper methods (DRY)
+        private List<CartItemDto> GetCart()
+        {
+            return HttpContext.Session.GetObject<List<CartItemDto>>(CartKey)
+                   ?? new List<CartItemDto>();
+        }
+
+        private void SaveCart(List<CartItemDto> cart)
+        {
+            HttpContext.Session.SetObject(CartKey, cart);
+        }
+
+        private void SetCartViewData(List<CartItemDto> cart)
+        {
+            ViewBag.Cart = cart;
+            ViewBag.Total = cart.Sum(x => x.Price * x.Quantity);
+        }
+
+        // 🔹 Cart page
         public IActionResult Index()
         {
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey)
-                       ?? new List<CartItemDto>();
-
+            var cart = GetCart();
             return View(cart);
         }
+
+        // 🔹 Add product
         [Authorize]
         public async Task<IActionResult> Add(int id)
         {
@@ -38,8 +56,7 @@ namespace MiniMarket.Web.Controllers
             if (product == null)
                 return NotFound();
 
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey)
-                       ?? new List<CartItemDto>();
+            var cart = GetCart();
 
             var existing = cart.FirstOrDefault(x => x.ProductId == id);
 
@@ -54,75 +71,81 @@ namespace MiniMarket.Web.Controllers
                     ProductId = product.Id,
                     Name = product.Name,
                     Price = product.Price,
-                    Quantity = 1
+                    Quantity = 1,
+                    ImageUrl = product.ImageUrl
                 });
             }
 
-            HttpContext.Session.SetObject(CartKey, cart);
+            SaveCart(cart);
 
             return RedirectToAction(nameof(Index));
         }
 
+        // 🔹 Remove product
         public IActionResult Remove(int id)
         {
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey);
+            var cart = GetCart();
 
-            if (cart != null)
+            var item = cart.FirstOrDefault(x => x.ProductId == id);
+            if (item != null)
             {
-                var item = cart.FirstOrDefault(x => x.ProductId == id);
-                if (item != null)
-                {
-                    cart.Remove(item);
-                }
-
-                HttpContext.Session.SetObject(CartKey, cart);
+                cart.Remove(item);
+                SaveCart(cart);
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // 🔹 Checkout GET
         public IActionResult Checkout()
         {
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey);
+            var cart = GetCart();
 
-            if (cart == null || !cart.Any())
+            if (!cart.Any())
                 return RedirectToAction(nameof(Index));
 
-            ViewBag.Cart = cart;
-            ViewBag.Total = cart.Sum(x => x.Price * x.Quantity);
+            SetCartViewData(cart);
 
             return View();
         }
 
+        // 🔹 Checkout POST
         [HttpPost]
         public async Task<IActionResult> Checkout(CheckoutDto model)
         {
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey);
+            var cart = GetCart();
 
-            if (cart == null || !cart.Any())
+            if (!cart.Any())
                 return RedirectToAction(nameof(Index));
+
+            // 🔥 Basic validation
             if (!ModelState.IsValid)
             {
-          
-
-                ViewBag.Cart = cart;
-                ViewBag.Total = cart?.Sum(x => x.Price * x.Quantity);
-
+                SetCartViewData(cart);
                 return View(model);
             }
 
+            // 🔥 Card validation (conditional)
             if (model.PaymentMethod == "Card")
             {
-                if (string.IsNullOrWhiteSpace(model.CardNumber) ||
-                    string.IsNullOrWhiteSpace(model.CVV))
+                if (string.IsNullOrWhiteSpace(model.CardNumber))
+                    ModelState.AddModelError("CardNumber", "Card number is required");
+
+                if (string.IsNullOrWhiteSpace(model.CVV))
+                    ModelState.AddModelError("CVV", "CVV is required");
+
+                if (string.IsNullOrWhiteSpace(model.CardHolder))
+                    ModelState.AddModelError("CardHolder", "Card holder is required");
+
+                if (string.IsNullOrWhiteSpace(model.Expiry))
+                    ModelState.AddModelError("Expiry", "Expiry date is required");
+
+                if (!ModelState.IsValid)
                 {
-                    ModelState.AddModelError("", "Card details are required");
-
-
+                    SetCartViewData(cart);
                     return View(model);
                 }
             }
-
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -135,28 +158,28 @@ namespace MiniMarket.Web.Controllers
             return RedirectToAction("Index", "Products");
         }
 
+        // 🔹 Update quantity
         public IActionResult UpdateQuantity(int id, int change)
         {
-            var cart = HttpContext.Session.GetObject<List<CartItemDto>>(CartKey);
+            var cart = GetCart();
 
-            if (cart != null)
+            var item = cart.FirstOrDefault(x => x.ProductId == id);
+
+            if (item != null)
             {
-                var item = cart.FirstOrDefault(x => x.ProductId == id);
+                item.Quantity += change;
 
-                if (item != null)
+                if (item.Quantity <= 0)
                 {
-                    item.Quantity += change;
-
-                    if (item.Quantity <= 0)
-                    {
-                        cart.Remove(item);
-                    }
-
-                    HttpContext.Session.SetObject(CartKey, cart);
+                    cart.Remove(item);
                 }
+
+                SaveCart(cart);
             }
 
             return RedirectToAction(nameof(Index));
         }
     }
+
+
 }

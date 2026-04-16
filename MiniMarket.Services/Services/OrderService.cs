@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MiniMarket.Data;
+﻿using MiniMarket.Data;
 using MiniMarket.Data.Models;
 using MiniMarket.Services.Interfaces;
 using MiniMarket.Services.Models;
@@ -15,11 +10,35 @@ public class OrderService : IOrderService
 {
     private readonly AppDbContext _context;
 
-    public OrderService(AppDbContext context)
+
+public OrderService(AppDbContext context)
     {
         _context = context;
     }
 
+    
+    private static OrderViewModel MapOrder(Order o)
+    {
+        return new OrderViewModel
+        {
+            Id = o.Id,
+            UserId = o.UserId,
+            CreatedOn = o.CreatedOn,
+            Email = o.User?.Email ?? "",
+            FirstName = o.FirstName,
+            LastName = o.LastName,
+            Address = o.Address,
+            TotalPrice = o.TotalPrice,
+            PaymentMethod = o.PaymentMethod,
+            Items = o.OrderItems.Select(oi => new OrderItemViewModel
+            {
+                ProductName = oi.Product.Name,
+                Quantity = oi.Quantity
+            }).ToList()
+        };
+    }
+
+    
     public async Task CreateOrderAsync(string userId, List<CartItemDto> items, CheckoutDto model)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
@@ -28,26 +47,20 @@ public class OrderService : IOrderService
         {
             var order = new Order
             {
+                IsCompleted = false,
                 UserId = userId,
                 CreatedOn = DateTime.UtcNow,
-                OrderItems = new List<OrderItem>(),
-
-                // ✅ новите полета
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 Address = model.Address,
                 TotalPrice = items.Sum(x => x.Price * x.Quantity),
-                PaymentMethod = model.PaymentMethod
-            };
-
-            foreach (var item in items)
-            {
-                order.OrderItems.Add(new OrderItem
+                PaymentMethod = model.PaymentMethod,
+                OrderItems = items.Select(i => new OrderItem
                 {
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity
-                });
-            }
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity
+                }).ToList()
+            };
 
             _context.Orders.Add(order);
 
@@ -60,37 +73,21 @@ public class OrderService : IOrderService
             throw;
         }
     }
+
+    
     public async Task<IEnumerable<OrderViewModel>> GetAllAsync()
     {
         return await _context.Orders
             .Where(o => !o.IsCompleted)
             .Include(o => o.User)
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
             .OrderByDescending(o => o.CreatedOn)
-            .Select(o => new OrderViewModel
-            {
-                Id = o.Id,
-                UserId = o.UserId,
-                CreatedOn = o.CreatedOn,
-
-                // ✅ новите полета
-                Email = o.User != null ? o.User.Email ?? "" : "",
-                FirstName = o.FirstName,
-                LastName = o.LastName,
-                Address = o.Address,
-                TotalPrice = o.TotalPrice,
-                PaymentMethod = o.PaymentMethod,
-
-                Items = o.OrderItems.Select(oi => new OrderItemViewModel
-                {
-                    ProductName = oi.Product.Name,
-                    Quantity = oi.Quantity
-                }).ToList()
-            })
+            .Select(o => MapOrder(o))
             .ToListAsync();
     }
 
+   
     public async Task CompleteOrderAsync(int orderId)
     {
         var order = await _context.Orders.FindAsync(orderId);
@@ -103,32 +100,25 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
     }
 
+    
     public async Task<IEnumerable<OrderViewModel>> GetCompletedAsync()
     {
         return await _context.Orders
             .Where(o => o.IsCompleted)
             .Include(o => o.User)
             .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+                .ThenInclude(oi => oi.Product)
             .OrderByDescending(o => o.CreatedOn)
-            .Select(o => new OrderViewModel
-            {
-                Id = o.Id,
-                UserId = o.UserId,
-                CreatedOn = o.CreatedOn,
-                Email = o.User!.Email!,
-                FirstName = o.FirstName,
-                LastName = o.LastName,
-                Address = o.Address,
-                TotalPrice = o.TotalPrice,
-                PaymentMethod = o.PaymentMethod,
-                Items = o.OrderItems.Select(oi => new OrderItemViewModel
-                {
-                    ProductName = oi.Product.Name,
-                    Quantity = oi.Quantity
-                }).ToList()
-            })
+            .Select(o => MapOrder(o))
             .ToListAsync();
+    }
+
+    
+    public async Task<bool> HasUserBoughtProduct(string userId, int productId)
+    {
+        return await _context.Orders
+            .Where(o => o.UserId == userId && o.IsCompleted)
+            .AnyAsync(o => o.OrderItems.Any(oi => oi.ProductId == productId));
     }
 
 

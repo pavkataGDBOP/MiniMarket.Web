@@ -40,6 +40,8 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .AsQueryable();
 
+
+
         // 🔥 ФИЛТЪР
         if (categoryId.HasValue)
         {
@@ -56,7 +58,10 @@ public class ProductService : IProductService
                 Name = p.Name,
                 Price = p.Price,
                 CategoryName = p.Category.Name,
-                ImageUrl = p.ImageUrl
+                ImageUrl = p.ImageUrl,
+                AverageRating = _context.Ratings
+    .Where(r => r.ProductId == p.Id)
+    .Average(r => (double?)r.Value) ?? 0,
             })
             .ToListAsync();
     }
@@ -84,5 +89,12 @@ public class ProductService : IProductService
 
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> HasUserBoughtProduct(string userId, int productId)
+    {
+        return await _context.Orders
+            .Where(o => o.UserId == userId && o.IsCompleted) // optional
+            .AnyAsync(o => o.OrderItems.Any(oi => oi.ProductId == productId));
     }
 }

@@ -3,23 +3,33 @@
 <h2 class="mb-4">🧾 Checkout</h2>
 
 <!-- 🛒 CART SUMMARY -->
+
 <div class="mb-4">
     <h4>Products:</h4>
 
+    ```
     <ul class="list-group mb-3">
-        @foreach (var item in ViewBag.Cart)
+        @if (ViewBag.Cart != null)
         {
-            <li class="list-group-item d-flex justify-content-between">
-                <span>@item.Name (x@(item.Quantity))</span>
-                <strong>@(item.Price * item.Quantity) €</strong>
-            </li>
+            @foreach (var item in ViewBag.Cart)
+            {
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>@item.Name (x@(item.Quantity))</span>
+                    <strong>@(item.Price * item.Quantity) €</strong>
+                </li>
+            }
         }
     </ul>
 
-    <h5>Total: @ViewBag.Total €</h5>
+    <h5>Total: @(ViewBag.Total ?? 0) €</h5>
+    ```
+
 </div>
 
 <form method="post" class="col-md-6">
+
+    ```
+    <!-- 👤 USER INFO -->
     <div class="mb-3">
         <label class="form-label">First Name</label>
         <input asp-for="FirstName" class="form-control" />
@@ -35,8 +45,10 @@
     <div class="mb-3">
         <label class="form-label">Address</label>
         <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
     </div>
 
+    <!-- 💰 PAYMENT -->
     <div class="mb-3">
         <label class="form-label">Payment Method</label>
         <select asp-for="PaymentMethod" class="form-select" id="paymentSelect">
@@ -55,18 +67,23 @@
                    class="form-control"
                    inputmode="numeric"
                    placeholder="XXXX XXXX XXXX XXXX" />
-                <span asp-validation-for="CardNumber" class="text-danger"></span>
-
+            <span asp-validation-for="CardNumber" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label>Card Holder</label>
             <input asp-for="CardHolder" class="form-control" />
+            <span asp-validation-for="CardHolder" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label>Expiry</label>
-            <input asp-for="Expiry" class="form-control" placeholder="MM/YY" />
+            <input asp-for="Expiry"
+                   id="expiryInput"
+                   class="form-control"
+                   maxlength="5"
+                   placeholder="MM/YY" />
+            <span asp-validation-for="Expiry" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
@@ -81,53 +98,59 @@
     </div>
 
     <button type="submit" class="btn btn-success">Confirm Order</button>
+    ```
+
 </form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 
+    ```
     <script>
         document.addEventListener("DOMContentLoaded", function () {
 
-            const select = document.getElementById("paymentSelect");
+            const paymentSelect = document.getElementById("paymentSelect");
             const cardSection = document.getElementById("cardSection");
+            const cardInput = document.getElementById("cardInput");
+            const expiryInput = document.getElementById("expiryInput");
 
+            // 🔹 Toggle card section
             function toggleCard() {
-                if (select.value === "Card") {
-                    cardSection.style.display = "block";
-                } else {
-                    cardSection.style.display = "none";
-                }
+                cardSection.style.display = paymentSelect.value === "Card" ? "block" : "none";
             }
 
-            // при смяна
-            select.addEventListener("change", toggleCard);
-
-            // при зареждане (много важно!)
+            paymentSelect.addEventListener("change", toggleCard);
             toggleCard();
+
+            // 🔹 Card number formatting
+            if (cardInput) {
+                cardInput.addEventListener("input", function (e) {
+                    let value = e.target.value.replace(/\D/g, '').substring(0, 16);
+                    e.target.value = value.match(/.{1,4}/g)?.join(' ') || '';
+                });
+            }
+
+            // 🔹 Expiry formatting
+            if (expiryInput) {
+                expiryInput.addEventListener("input", function (e) {
+                    let value = e.target.value.replace(/\D/g, '').substring(0, 4);
+
+                    if (value.length >= 2) {
+                        let month = parseInt(value.slice(0, 2));
+                        if (month > 12) value = "12" + value.slice(2);
+                        if (month === 0) value = "01" + value.slice(2);
+                    }
+
+                    if (value.length >= 3) {
+                        value = value.slice(0, 2) + '/' + value.slice(2);
+                    }
+
+                    e.target.value = value;
+                });
+            }
+
         });
     </script>
+    ```
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-
-            const input = document.getElementById("cardInput");
-
-            if (!input) return;
-
-            input.addEventListener("input", function (e) {
-
-                let value = e.target.value.replace(/\D/g, '');
-
-                // 🔥 ограничение до 16 цифри
-                value = value.substring(0, 16);
-
-                // групиране по 4
-                value = value.match(/.{1,4}/g)?.join(' ') || '';
-
-                e.target.value = value;
-            });
-
-        });
-    </script>
 }

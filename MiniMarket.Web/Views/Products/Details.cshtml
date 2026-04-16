@@ -26,6 +26,53 @@
                 @Model.Price.ToString("0.00") €
             </h3>
 
+            <div class="mb-3 text-warning fs-4">
+                @{
+                    var fullStars = (int)Model.AverageRating;
+                    var emptyStars = 5 - fullStars;
+                }
+
+                @for (int i = 0; i < fullStars; i++)
+                {
+                    <span>★</span>
+                }
+
+                @for (int i = 0; i < emptyStars; i++)
+                {
+                    <span>☆</span>
+                }
+
+                <span class="text-muted fs-6">
+                    (@Model.AverageRating.ToString("0.0"))
+                </span>
+            </div>
+            @if (ViewBag.CanRate == true)
+            {
+                <div class="mt-4">
+                    <h5>Rate this product</h5>
+
+                    <form asp-action="Rate" method="post">
+                        <input type="hidden" name="productId" value="@Model.Id" />
+
+                        <select name="value" class="form-select mb-2">
+                            <option value="1">1 ⭐</option>
+                            <option value="2">2 ⭐</option>
+                            <option value="3">3 ⭐</option>
+                            <option value="4">4 ⭐</option>
+                            <option value="5">5 ⭐</option>
+                        </select>
+
+                        <button class="btn btn-warning">Submit Rating</button>
+                    </form>
+                </div>
+            }
+            else if (ViewBag.AlreadyRated == true)
+            {
+                <p class="text-success mt-3">
+                    ✅ You have already rated this product.
+                </p>
+            }
+
             <!-- DESCRIPTION -->
             <div class="mb-4">
                 <h5>Description</h5>

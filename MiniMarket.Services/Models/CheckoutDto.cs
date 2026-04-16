@@ -16,14 +16,17 @@ public class CheckoutDto
     public string LastName { get; set; } = null!;
 
 
-    [Required]
+    [Required(ErrorMessage = "Address is required")]
     public string Address { get; set; } = null!;
 
     [Required]
     public string PaymentMethod { get; set; } = null!;
 
     public string? CardNumber { get; set; }
+    [RegularExpression(@"^[a-zA-Zа-яА-Я\s]+$", ErrorMessage = "Only letters allowed")]
     public string? CardHolder { get; set; }
+
+    [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Format MM/YY")]
     public string? Expiry { get; set; }
     public string? CVV { get; set; }
 }

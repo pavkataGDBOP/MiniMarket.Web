@@ -80,6 +80,25 @@ else
                             @item.Price.ToString("0.00") €
                         </h6>
 
+                        <div class="mb-2 text-warning">
+                            @{
+                                var fullStars = (int)item.AverageRating;
+                                var emptyStars = 5 - fullStars;
+                            }
+
+                            @for (int i = 0; i < fullStars; i++)
+                            {
+                                <span>★</span>
+                            }
+
+                            @for (int i = 0; i < emptyStars; i++)
+                            {
+                                <span>☆</span>
+                            }
+
+                            <small class="text-muted">(@item.AverageRating.ToString("0.0"))</small>
+                        </div>
+
                         <div class="mt-auto">
 
                             @if (User.Identity?.IsAuthenticated == true)

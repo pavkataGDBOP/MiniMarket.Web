@@ -14,4 +14,5 @@ public interface IOrderService
     Task<IEnumerable<OrderViewModel>> GetAllAsync();
     Task CompleteOrderAsync(int orderId);
     Task<IEnumerable<OrderViewModel>> GetCompletedAsync();
+    Task<bool> HasUserBoughtProduct(string userId, int productId);
 }

@@ -2,9 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniMarket.Data;
+using MiniMarket.Data.Models;
 using MiniMarket.Services.Interfaces;
 using MiniMarket.Services.Models;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace MiniMarket.Web.Controllers;
 
@@ -12,26 +13,51 @@ public class ProductsController : Controller
 {
     private readonly IProductService _productService;
     private readonly ICategoryService _categoryService;
+    private readonly IOrderService _orderService;
     private readonly AppDbContext _context;
 
-    public ProductsController(
-        IProductService productService,
-        ICategoryService categoryService,
-        AppDbContext context)
+
+public ProductsController(
+    IProductService productService,
+    ICategoryService categoryService,
+    IOrderService orderService,
+    AppDbContext context)
     {
         _productService = productService;
         _categoryService = categoryService;
+        _orderService = orderService;
         _context = context;
     }
-    public async Task<IActionResult> Index(int page = 1, int? categoryId = null, string search = "")
+
+    
+    private async Task SetCategoriesAsync()
     {
         ViewBag.Categories = await _categoryService.GetAllAsync();
+    }
+
+    private async Task<(bool canRate, bool alreadyRated)> GetRatingStatus(int productId, string? userId)
+    {
+        if (userId == null)
+            return (false, false);
+
+        var alreadyRated = await _context.Ratings
+            .AnyAsync(r => r.ProductId == productId && r.UserId == userId);
+
+        var hasBought = await _orderService.HasUserBoughtProduct(userId, productId);
+
+        return (hasBought && !alreadyRated, alreadyRated);
+    }
+
+    
+    public async Task<IActionResult> Index(int page = 1, int? categoryId = null, string search = "")
+    {
+        await SetCategoriesAsync();
+
         ViewBag.SelectedCategory = categoryId;
         ViewBag.Search = search;
 
         var products = await _productService.GetAllAsync(page, 10, categoryId);
 
-        // 🔍 SEARCH
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.Trim().ToLower();
@@ -44,10 +70,12 @@ public class ProductsController : Controller
 
         return View(products);
     }
+
+    
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create()
     {
-        ViewBag.Categories = await _categoryService.GetAllAsync();
+        await SetCategoriesAsync();
         return View();
     }
 
@@ -57,28 +85,24 @@ public class ProductsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Categories = await _categoryService.GetAllAsync();
+            await SetCategoriesAsync();
             return View(model);
         }
 
-        // 📸 upload image
+        
         if (model.ImageFile != null)
         {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
 
             var fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
+            var path = Path.Combine(folder, fileName);
 
-            var filePath = Path.Combine(uploadsFolder, fileName);
+            using var stream = new FileStream(path, FileMode.Create);
+            await model.ImageFile.CopyToAsync(stream);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await model.ImageFile.CopyToAsync(stream);
-            }
-
-            // 👉 записваме пътя в DTO
             model.ImageUrl = "/images/" + fileName;
         }
 
@@ -86,6 +110,8 @@ public class ProductsController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -93,6 +119,7 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    
     public async Task<IActionResult> Details(int id)
     {
         var product = await _context.Products
@@ -109,11 +136,25 @@ public class ProductsController : Controller
             Description = product.Description ?? "",
             Price = product.Price,
             CategoryName = product.Category.Name,
-            ImageUrl = product.ImageUrl
+            ImageUrl = product.ImageUrl,
+            AverageRating = _context.Ratings
+                .Where(r => r.ProductId == product.Id)
+                .Select(r => (double?)r.Value)
+                .Average() ?? 0
         };
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var (canRate, alreadyRated) = await GetRatingStatus(id, userId);
+
+        ViewBag.CanRate = canRate;
+        ViewBag.AlreadyRated = alreadyRated;
 
         return View(model);
     }
+
+    
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         var product = await _context.Products.FindAsync(id);
@@ -130,17 +171,18 @@ public class ProductsController : Controller
             ImageUrl = product.ImageUrl
         };
 
-        ViewBag.Categories = await _categoryService.GetAllAsync();
+        await SetCategoriesAsync();
 
         return View(model);
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id, CreateProductDto model)
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Categories = await _categoryService.GetAllAsync();
+            await SetCategoriesAsync();
             return View(model);
         }
 
@@ -149,23 +191,20 @@ public class ProductsController : Controller
         if (product == null)
             return NotFound();
 
-        // 📸 ако има нова снимка
+        
         if (model.ImageFile != null)
         {
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
 
             var fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
+            var path = Path.Combine(folder, fileName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await model.ImageFile.CopyToAsync(stream);
-            }
+            using var stream = new FileStream(path, FileMode.Create);
+            await model.ImageFile.CopyToAsync(stream);
 
             product.ImageUrl = "/images/" + fileName;
         }
 
-        // 🧠 update данни
         product.Name = model.Name;
         product.Description = model.Description;
         product.Price = model.Price;
@@ -173,6 +212,34 @@ public class ProductsController : Controller
 
         await _context.SaveChangesAsync();
 
-        return RedirectToAction("Index");
+        return RedirectToAction(nameof(Index));
     }
+
+    
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Rate(int productId, int value)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var alreadyRated = await _context.Ratings
+            .AnyAsync(r => r.ProductId == productId && r.UserId == userId);
+
+        if (alreadyRated)
+            return RedirectToAction("Details", new { id = productId });
+
+        var rating = new Rating
+        {
+            ProductId = productId,
+            UserId = userId!,
+            Value = value
+        };
+
+        _context.Ratings.Add(rating);
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction("Details", new { id = productId });
+    }
+
+
 }
