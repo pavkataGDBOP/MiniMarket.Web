@@ -1,0 +1,44 @@
+﻿@model MiniMarket.Services.Models.CreateProductDto
+
+<h2>Edit Product</h2>
+
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+
+    <div class="mb-3">
+        <label>Name</label>
+        <input asp-for="Name" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label>Price</label>
+        <input asp-for="Price" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Category</label>
+        <select asp-for="CategoryId" class="form-select">
+            @foreach (var category in ViewBag.Categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Change Image</label>
+        <input type="file" asp-for="ImageFile" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

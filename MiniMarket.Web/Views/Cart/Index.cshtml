@@ -1,0 +1,65 @@
+﻿@model List<MiniMarket.Services.Models.CartItemDto>
+
+<h2 class="mb-4">🛒 Your Cart</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        Your cart is empty.
+    </div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.Price.ToString("0.00") €</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-secondary"
+                           asp-action="UpdateQuantity"
+                           asp-route-id="@item.ProductId"
+                           asp-route-change="-1">-</a>
+
+                        <span class="mx-2">@item.Quantity</span>
+
+                        <a class="btn btn-sm btn-outline-secondary"
+                           asp-action="UpdateQuantity"
+                           asp-route-id="@item.ProductId"
+                           asp-route-change="1">+</a>
+                    </td>
+                    <td>@(item.Price * item.Quantity) €</td>
+                    <td>
+                        <a class="btn btn-sm btn-danger"
+                               asp-action="Remove"
+                               asp-route-id="@item.ProductId">
+                            Remove
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between mt-3">
+        <h4>
+            Total: @Model.Sum(x => x.Price * x.Quantity).ToString("0.00") €
+        </h4>
+
+        <a class="btn btn-success btn-lg" asp-action="Checkout">
+            Checkout
+        </a>
+    </div>
+}

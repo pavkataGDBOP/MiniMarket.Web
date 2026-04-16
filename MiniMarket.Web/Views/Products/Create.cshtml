@@ -1,0 +1,55 @@
+﻿@model MiniMarket.Services.Models.CreateProductDto
+
+<h2 class="mb-4">➕ Create Product</h2>
+
+<form asp-action="Create" method="post" class="col-md-6" enctype="multipart/form-data">
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Price (€)</label>
+        <input asp-for="Price" class="form-control" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+    <small class="text-muted">Use comma (,) for decimals</small>
+
+    <div class="mb-3">
+        <label>Upload Image</label>
+        <input type="file" asp-for="ImageFile" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Category</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">-- Select Category --</option>
+
+            @foreach (var category in ViewBag.Categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger"></span>
+        
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Create</button>
+
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+    </div>
+
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

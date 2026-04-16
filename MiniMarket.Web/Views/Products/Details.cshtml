@@ -1,0 +1,59 @@
+﻿@model MiniMarket.Services.Models.ProductViewModel
+
+<div class="container mt-4">
+
+    <div class="row">
+
+        <!-- IMAGE -->
+        <div class="col-md-6 text-center">
+            <div style="height:400px; display:flex; align-items:center; justify-content:center; background:#f8f9fa; border:1px solid #eee;">
+                <img src="@(Model.ImageUrl ?? "/images/no-image.png")"
+                     style="max-height:100%; max-width:100%; object-fit:contain;" />
+            </div>
+        </div>
+
+        <!-- DETAILS -->
+        <div class="col-md-6">
+
+            <h2 class="mb-3">@Model.Name</h2>
+
+            <p class="text-muted mb-2">
+                Category: <strong>@Model.CategoryName</strong>
+            </p>
+
+            <!-- PRICE -->
+            <h3 class="text-success mb-4">
+                @Model.Price.ToString("0.00") €
+            </h3>
+
+            <!-- DESCRIPTION -->
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p class="text-dark">
+                    @(string.IsNullOrWhiteSpace(Model.Description) ? "No description available." : Model.Description)
+                </p>
+            </div>
+
+            <!-- BUTTON -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a class="btn btn-success btn-lg w-100"
+                       asp-controller="Cart"
+                       asp-action="Add"
+                       asp-route-id="@Model.Id">
+                    🛒 Add to Cart
+                </a>
+            }
+            else
+            {
+                <a class="btn btn-secondary btn-lg w-100"
+                       asp-area="Identity"
+                       asp-page="/Account/Login">
+                    Login to Buy
+                </a>
+            }
+
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="MiniMarket.Data/MiniMarket.Data.csproj" />
+  <Project Path="MiniMarket.Services/MiniMarket.Services.csproj" />
+  <Project Path="MiniMarket.Tests/MiniMarket.Tests.csproj" />
+  <Project Path="MiniMarket.Web/MiniMarket.Web.csproj" />
+</Solution>
