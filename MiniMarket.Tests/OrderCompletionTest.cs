@@ -23,7 +23,12 @@ public class OrderCompletionTests
         var order = new Order
         {
             UserId = "user1",
-            IsCompleted = false
+            IsCompleted = false,
+            FirstName = "Test",
+            LastName = "User",
+            Address = "Sofia",
+            PaymentMethod = "Cash",
+            TotalPrice = 10
         };
 
         context.Orders.Add(order);

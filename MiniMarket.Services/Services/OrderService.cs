@@ -1,8 +1,9 @@
-﻿using MiniMarket.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using MiniMarket.Data;
 using MiniMarket.Data.Models;
+using MiniMarket.Services.Helpers;
 using MiniMarket.Services.Interfaces;
 using MiniMarket.Services.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace MiniMarket.Services.Services;
 
@@ -38,13 +39,23 @@ public OrderService(AppDbContext context)
         };
     }
 
-    
+
     public async Task CreateOrderAsync(string userId, List<CartItemDto> items, CheckoutDto model)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
+            // 🔐 CARD LOGIC
+            var cardHash = string.Empty;
+            var last4 = string.Empty;
+
+            if (model.PaymentMethod == "Card" && !string.IsNullOrEmpty(model.CardNumber))
+            {
+                cardHash = HashHelper.Hash(model.CardNumber);
+                last4 = model.CardNumber[^4..];
+            }
+
             var order = new Order
             {
                 IsCompleted = false,
@@ -55,6 +66,11 @@ public OrderService(AppDbContext context)
                 Address = model.Address,
                 TotalPrice = items.Sum(x => x.Price * x.Quantity),
                 PaymentMethod = model.PaymentMethod,
+
+                // 👉 нови полета
+                CardHash = cardHash,
+                CardLast4 = last4,
+
                 OrderItems = items.Select(i => new OrderItem
                 {
                     ProductId = i.ProductId,
@@ -74,7 +90,7 @@ public OrderService(AppDbContext context)
         }
     }
 
-    
+
     public async Task<IEnumerable<OrderViewModel>> GetAllAsync()
     {
         return await _context.Orders

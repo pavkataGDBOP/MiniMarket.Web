@@ -22,7 +22,7 @@ namespace MiniMarket.Web.Controllers
             _context = context;
         }
 
-        // 🔹 Helper methods (DRY)
+        //  Helper methods 
         private List<CartItemDto> GetCart()
         {
             return HttpContext.Session.GetObject<List<CartItemDto>>(CartKey)
@@ -40,14 +40,14 @@ namespace MiniMarket.Web.Controllers
             ViewBag.Total = cart.Sum(x => x.Price * x.Quantity);
         }
 
-        // 🔹 Cart page
+       
         public IActionResult Index()
         {
             var cart = GetCart();
             return View(cart);
         }
 
-        // 🔹 Add product
+       
         [Authorize]
         public async Task<IActionResult> Add(int id)
         {
@@ -81,7 +81,7 @@ namespace MiniMarket.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // 🔹 Remove product
+        //  Remove product
         public IActionResult Remove(int id)
         {
             var cart = GetCart();
@@ -96,7 +96,7 @@ namespace MiniMarket.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // 🔹 Checkout GET
+       
         public IActionResult Checkout()
         {
             var cart = GetCart();
@@ -109,7 +109,7 @@ namespace MiniMarket.Web.Controllers
             return View();
         }
 
-        // 🔹 Checkout POST
+        
         [HttpPost]
         public async Task<IActionResult> Checkout(CheckoutDto model)
         {
@@ -118,27 +118,27 @@ namespace MiniMarket.Web.Controllers
             if (!cart.Any())
                 return RedirectToAction(nameof(Index));
 
-            // 🔥 Basic validation
+            
             if (!ModelState.IsValid)
             {
                 SetCartViewData(cart);
                 return View(model);
             }
 
-            // 🔥 Card validation (conditional)
+            
             if (model.PaymentMethod == "Card")
             {
-                if (string.IsNullOrWhiteSpace(model.CardNumber))
-                    ModelState.AddModelError("CardNumber", "Card number is required");
-
                 if (string.IsNullOrWhiteSpace(model.CVV))
                     ModelState.AddModelError("CVV", "CVV is required");
+
+                if (string.IsNullOrWhiteSpace(model.CardNumber))
+                    ModelState.AddModelError("CardNumber", "Card number is required");
 
                 if (string.IsNullOrWhiteSpace(model.CardHolder))
                     ModelState.AddModelError("CardHolder", "Card holder is required");
 
                 if (string.IsNullOrWhiteSpace(model.Expiry))
-                    ModelState.AddModelError("Expiry", "Expiry date is required");
+                    ModelState.AddModelError("Expiry", "Expiry is required");
 
                 if (!ModelState.IsValid)
                 {

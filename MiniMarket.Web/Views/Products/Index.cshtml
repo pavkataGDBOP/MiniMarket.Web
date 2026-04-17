@@ -2,7 +2,7 @@
 
 <h2 class="mb-4">🛍 Products</h2>
 
-<!-- Categories -->
+
 <div class="d-flex flex-wrap gap-2 mb-4">
     @foreach (var category in ViewBag.Categories)
     {
@@ -19,7 +19,7 @@
 </div>
 
 
-<!-- Admin buttons -->
+
 @if (User.IsInRole("Admin"))
 {
     <div class="mb-4">

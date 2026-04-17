@@ -25,4 +25,7 @@ public class Order
     public string PaymentMethod { get; set; } = null!;
 
     public bool IsCompleted { get; set; } = false;
+
+    public string? CardHash { get; set; }
+    public string? CardLast4 { get; set; }
 }

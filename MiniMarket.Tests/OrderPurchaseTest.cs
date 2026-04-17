@@ -24,7 +24,13 @@ public class OrderPurchaseTests
         context.Orders.Add(new Order
         {
             UserId = "user1",
-            IsCompleted = true,
+            IsCompleted = true, // важно!
+            FirstName = "Test",
+            LastName = "User",
+            Address = "Sofia",
+            PaymentMethod = "Cash",
+            TotalPrice = 10,
+
             OrderItems = new List<OrderItem>
         {
             new OrderItem { ProductId = 1 }
@@ -48,7 +54,13 @@ public class OrderPurchaseTests
         context.Orders.Add(new Order
         {
             UserId = "user1",
-            IsCompleted = false,
+            IsCompleted = false, // важно
+            FirstName = "Test",
+            LastName = "User",
+            Address = "Sofia",
+            PaymentMethod = "Cash",
+            TotalPrice = 10,
+
             OrderItems = new List<OrderItem>
         {
             new OrderItem { ProductId = 1 }

@@ -9,13 +9,13 @@ public class OrderPaymentTests
     private AppDbContext GetDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-        .UseInMemoryDatabase(Guid.NewGuid().ToString())
-        .Options;
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
 
-
-    return new AppDbContext(options);
+        return new AppDbContext(options);
     }
-
     [Fact]
     public async Task CreateOrderAsync_ShouldSavePaymentMethod()
     {

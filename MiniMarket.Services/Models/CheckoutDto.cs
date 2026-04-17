@@ -28,5 +28,8 @@ public class CheckoutDto
 
     [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Format MM/YY")]
     public string? Expiry { get; set; }
+
+    
+    [RegularExpression(@"^\d{3}$", ErrorMessage = "CVV must be exactly 3 digits")]
     public string? CVV { get; set; }
 }

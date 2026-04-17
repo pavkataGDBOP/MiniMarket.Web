@@ -10,6 +10,8 @@ public class OrderMultipleOrdersTest
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         return new AppDbContext(options);
@@ -25,6 +27,11 @@ public class OrderMultipleOrdersTest
             {
                 UserId = "user1",
                 IsCompleted = true,
+                FirstName = "Test",
+                LastName = "User",
+                Address = "Sofia",
+                PaymentMethod = "Cash",
+                TotalPrice = 10,
                 OrderItems = new List<OrderItem>
                 {
                     new OrderItem { ProductId = 1 }
@@ -34,6 +41,11 @@ public class OrderMultipleOrdersTest
             {
                 UserId = "user1",
                 IsCompleted = true,
+                FirstName = "Test",
+                LastName = "User",
+                Address = "Sofia",
+                PaymentMethod = "Cash",
+                TotalPrice = 10,
                 OrderItems = new List<OrderItem>
                 {
                     new OrderItem { ProductId = 2 }
@@ -45,14 +57,12 @@ public class OrderMultipleOrdersTest
 
         var service = new OrderService(context);
 
-        // Act
         var result1 = await service.HasUserBoughtProduct("user1", 1);
         var result2 = await service.HasUserBoughtProduct("user1", 2);
         var result3 = await service.HasUserBoughtProduct("user1", 3);
 
-        // Assert
-        Assert.True(result1);  // купил продукт 1
-        Assert.True(result2);  // купил продукт 2
-        Assert.False(result3); // не е купил продукт 3
+        Assert.True(result1);
+        Assert.True(result2);
+        Assert.False(result3);
     }
 }
