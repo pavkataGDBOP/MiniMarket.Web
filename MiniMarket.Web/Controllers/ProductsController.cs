@@ -48,30 +48,30 @@ public ProductsController(
         return (hasBought && !alreadyRated, alreadyRated);
     }
 
-    
+
     public async Task<IActionResult> Index(int page = 1, int? categoryId = null, string search = "")
     {
+        int pageSize = 10;
+
         await SetCategoriesAsync();
 
         ViewBag.SelectedCategory = categoryId;
         ViewBag.Search = search;
 
-        var products = await _productService.GetAllAsync(page, 10, categoryId);
+        // 👉 взимаме продуктите (вече филтрирани в service)
+        var products = await _productService.GetAllAsync(page, pageSize, categoryId, search);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            search = search.Trim().ToLower();
+        // 👉 общ брой продукти (за pagination)
+        var totalProducts = await _productService.GetCountAsync(categoryId, search);
 
-            products = products.Where(p =>
-                p.Name.ToLower().Contains(search) ||
-                (p.Description != null && p.Description.ToLower().Contains(search))
-            );
-        }
+        // 👉 pagination info
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
 
         return View(products);
     }
 
-    
+
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create()
     {

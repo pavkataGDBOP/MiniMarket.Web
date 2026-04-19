@@ -34,15 +34,25 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<ProductViewModel>> GetAllAsync(int page, int pageSize, int? categoryId)
+    public async Task<IEnumerable<ProductViewModel>> GetAllAsync(int page, int pageSize, int? categoryId, string search)
     {
         var query = _context.Products
             .Include(p => p.Category)
             .AsQueryable();
+        if (categoryId.HasValue)
+            query = query.Where(p => p.CategoryId == categoryId);
+
+        // 🔍 search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(search) ||
+                (p.Description != null && p.Description.ToLower().Contains(search)));
+        }
 
 
 
-        // 🔥 ФИЛТЪР
         if (categoryId.HasValue)
         {
             query = query.Where(p => p.CategoryId == categoryId.Value);
@@ -96,5 +106,23 @@ public class ProductService : IProductService
         return await _context.Orders
             .Where(o => o.UserId == userId && o.IsCompleted) // optional
             .AnyAsync(o => o.OrderItems.Any(oi => oi.ProductId == productId));
+    }
+    //за пагинацията
+    public async Task<int> GetCountAsync(int? categoryId, string search)
+    {
+        var query = _context.Products.AsQueryable();
+
+        if (categoryId.HasValue)
+            query = query.Where(p => p.CategoryId == categoryId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(search) ||
+                (p.Description != null && p.Description.ToLower().Contains(search)));
+        }
+
+        return await query.CountAsync();
     }
 }

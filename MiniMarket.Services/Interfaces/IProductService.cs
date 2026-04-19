@@ -10,9 +10,10 @@ namespace MiniMarket.Services.Interfaces;
 public interface IProductService
 {
     Task CreateAsync(CreateProductDto model);
-    Task<IEnumerable<ProductViewModel>> GetAllAsync(int page, int pageSize, int? categoryId);
+    Task<IEnumerable<ProductViewModel>> GetAllAsync(int page, int pageSize, int? categoryId, string search);
     Task<ProductViewModel?> GetByIdAsync(int id);
     Task DeleteAsync(int id);
-    
+    Task<int> GetCountAsync(int? categoryId, string search);
+
 }
    

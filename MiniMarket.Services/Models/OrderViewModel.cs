@@ -13,7 +13,7 @@ public class OrderViewModel
 
     public DateTime CreatedOn { get; set; }
 
-    // 🆕 нови полета
+    
     public string Email { get; set; } = null!;
 
     public string FirstName { get; set; } = null!;
